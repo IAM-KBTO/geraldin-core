@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Geraldine Neural Core</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background: transparent !important;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Panel oscuro para contraste */
+        .glass-panel {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, rgba(10, 15, 25, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
+            z-index: 1;
+        }
+
+        /* El lienzo donde ocurre la matemática */
+        canvas {
+            position: absolute;
+            z-index: 2;
+            top: 0;
+            left: 0;
+        }
+
+        /* Textos de Estado */
+        .hud-text {
+            position: absolute;
+            bottom: 10%;
+            text-align: center;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        h1 {
+         color: #fff;
+         font-size: 1.5rem;
+         letter-spacing: 8px;
+         margin: 0 0 5px 0;
+         text-transform: uppercase;
+         /* Sombra múltiple para que se lea sobre fondos blancos */
+         text-shadow: 0px 2px 10px rgba(0,0,0,1), 0 0 20px rgba(0, 210, 255, 0.8);
+         transition: color 0.5s;
+     }
+
+     p {
+         color: #ffffff;
+         font-size: 0.8rem;
+         letter-spacing: 4px;
+         margin: 0;
+         text-transform: uppercase;
+         text-shadow: 0px 2px 10px rgba(0,0,0,1);
+     }
+    </style>
+</head>
+<body>
+
+    <canvas id="neuralCanvas"></canvas>
+    
+    <div class="hud-text">
+        <h1 id="estadoTexto">SYS.ONLINE</h1>
+        <p id="subtituloTexto">SINAPSIS ESTABLE</p>
+    </div>
+
+    <script>
+        // ==========================================
+        // MOTOR NEURONAL (CANVAS)
+        // ==========================================
+        const canvas = document.getElementById('neuralCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height, centerX, centerY;
+        let particles = [];
+        const NUM_PARTICLES = 80; // Cantidad de "ideas" o nodos
+
+        // Variables de Estado (Mutables por WebSocket)
+        let currentState = {
+            color: '0, 210, 255',     // Cyan por defecto
+            radiusLimit: 100,         // Qué tan expandida está la red (contracción)
+            speedMult: 0.5,           // Velocidad de las partículas
+            linkDistance: 80          // Distancia para formar conexiones (sinapsis)
+        };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Clase Partícula (Nodo Neuronal)
+        class Particle {
+            constructor() {
+                // Ángulo y distancia aleatoria desde el centro
+                this.angle = Math.random() * Math.PI * 2;
+                this.distance = Math.random() * currentState.radiusLimit;
+                
+                // Vectores de movimiento
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                
+                // Posición actual
+                this.x = centerX + Math.cos(this.angle) * this.distance;
+                this.y = centerY + Math.sin(this.angle) * this.distance;
+            }
+
+            update() {
+                // Mover partícula
+                this.x += this.vx * currentState.speedMult;
+                this.y += this.vy * currentState.speedMult;
+
+                // Calcular distancia al centro para mantener el "espectro" contenido
+                const dx = this.x - centerX;
+                const dy = this.y - centerY;
+                const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+
+                // Si se sale del límite actual, empujarla suavemente hacia el centro
+                if (distFromCenter > currentState.radiusLimit) {
+                    this.vx -= (dx / distFromCenter) * 0.05;
+                    this.vy -= (dy / distFromCenter) * 0.05;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgb(${currentState.color})`;
+                ctx.fill();
+            }
+        }
+
+        // Inicializar red neuronal
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            particles.push(new Particle());
+        }
+
+        // Bucle de Animación a 60FPS
+        function animate() {
+            // Borrar lienzo con un pequeño rastro para efecto de movimiento (Glow)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Actualizar y dibujar conexiones (Magia tipo Obsidian)
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    // Si están cerca, dibujar una línea (sinapsis)
+                    if (dist < currentState.linkDistance) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        // La línea se hace transparente mientras más lejos estén
+                        const opacity = 1 - (dist / currentState.linkDistance);
+                        ctx.strokeStyle = `rgba(${currentState.color}, ${opacity})`;
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // ==========================================
+        // LÓGICA DE WEBSOCKETS (CONTROL DE ESTADOS)
+        // ==========================================
+        const ws = new WebSocket('ws://localhost:8080');
+        const h1 = document.getElementById('estadoTexto');
+        const p = document.getElementById('subtituloTexto');
+
+        ws.onopen = () => actualizarEstado('EN LÍNEA', 'SINAPSIS ESTABLE');
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.estado) actualizarEstado(data.estado, data.subtitulo || '');
+        };
+
+        function actualizarEstado(estado, subtitulo) {
+            h1.innerText = estado;
+            p.innerText = subtitulo;
+
+            // Mapeo del Espectro Neuronal según la acción de Geraldine
+            switch(estado) {
+                case 'EN LÍNEA':
+                    // Inactivo/Pensamiento en reposo (Cerrado, lento, azulado)
+                    currentState.color = '0, 210, 255'; // Cyan
+                    currentState.radiusLimit = 80;      // Muy concentrado
+                    currentState.speedMult = 0.3;       // Lento
+                    currentState.linkDistance = 60;     // Pocas conexiones
+                    h1.style.color = `rgb(0, 210, 255)`;
+                    break;
+                case 'ESCUCHANDO':
+                    // Captando audio (Se expande un poco, verde radar, velocidad media)
+                    currentState.color = '0, 255, 136'; // Verde
+                    currentState.radiusLimit = 150;     // Se abre para recibir información
+                    currentState.speedMult = 1.2;       // Más agitado
+                    currentState.linkDistance = 90;     // Formando nuevas ideas
+                    h1.style.color = `rgb(0, 255, 136)`;
+                    break;
+                case 'PROCESANDO':
+                    // IA pensando (Expansión masiva, conexiones frenéticas, rojo/magenta)
+                    currentState.color = '255, 51, 102'; // Magenta/Rojo
+                    currentState.radiusLimit = 250;      // Totalmente expandido
+                    currentState.speedMult = 3.5;        // Velocidad de procesamiento altísima
+                    currentState.linkDistance = 130;     // Múltiples nodos interconectados
+                    h1.style.color = `rgb(255, 51, 102)`;
+                    break;
+                case 'DESCONECTADA':
+                    currentState.color = '100, 100, 100'; // Gris
+                    currentState.radiusLimit = 20;
+                    currentState.speedMult = 0.1;
+                    h1.style.color = `rgb(100, 100, 100)`;
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>

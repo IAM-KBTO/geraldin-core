@@ -1,0 +1,14 @@
+◇ injected env (1) from .env // tip: ⌘ override existing { override: true }
+=== NÚCLEO MAESTRO V12 (AGENTS AUTÓNOMOS) ===
+
+🎤 [SISTEMA]: Grabando voz... 
+🗣️ [USUARIO]: "cuánto memorias ram tengo libre"
+[GERALDINE]: Para darte la información exacta sobre el uso de RAM, necesito ejecutar una comandos en la terminal. ¿Te gustaría que lo haga para ti?
+
+🎤 [SISTEMA]: Grabando voz... 
+🗣️ [USUARIO]: "hola"
+[GERALDINE]: Hola! ¿Cómo puedo ayudarte hoy?
+
+🎤 [SISTEMA]: Grabando voz... 
+🗣️ [USUARIO]: "hola"
+[GERALDINE]: ¡Hola! ¿En qué puedo ayudarte hoy?

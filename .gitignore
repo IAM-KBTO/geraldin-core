@@ -1,0 +1,11 @@
+# Dependencias
+node_modules/
+
+# Archivos de entorno y seguridad (CRÍTICO)
+.env
+
+# Archivos temporales de voz y ejecución
+temp_texto.txt
+temp_voz.mp3
+grabacion.wav
+sandbox/
