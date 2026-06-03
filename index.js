@@ -257,9 +257,17 @@ async function procesarIAGemini(textoUsuario) {
         }
 
     } catch (error) {
-        console.error("🐛 Error en la API de Gemini:", error);
+        console.error("\n🐛 Error en la API de Gemini:", error.message);
         estaProcesando = false;
-        actualizarUI("ERROR", "Fallo de conexión");
+        
+        // Si el error es por límite de peticiones (429)
+        if (error.status === 429) {
+            actualizarUI("ENFRIANDO", "Límite de API alcanzado...");
+            hablar("Amo, he alcanzado mi límite de procesamiento en la nube. Por favor, dame un minuto para enfriar el núcleo antes de la siguiente orden.");
+        } else {
+            actualizarUI("ERROR", "Fallo de conexión");
+            hablar("Hubo un error de conexión con mi cerebro principal.");
+        }
     }
 }
 
